@@ -17,6 +17,7 @@
             This project is a Spring Cloud Netflix Zuul Rate Limit strategy.
         ]]>
     </description>
+    <version>1.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>

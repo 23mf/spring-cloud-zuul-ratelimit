@@ -26,8 +26,6 @@ import com.netflix.zuul.context.RequestContext;
  */
 public interface UserIDGenerator {
 
-    String ANONYMOUS_USER = "anonymous";
-
     /**
      * 根据context获取用户信息
      * @param context The {@link RequestContext}

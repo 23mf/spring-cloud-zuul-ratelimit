@@ -44,6 +44,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public abstract class AbstractRateLimitFilter extends ZuulFilter {
 
+    public static final String MUST_EXIST = "must-exist";
+
     public static final String QUOTA_HEADER = "X-RateLimit-Quota";
     public static final String REMAINING_QUOTA_HEADER = "X-RateLimit-Remaining-Quota";
     public static final String LIMIT_HEADER = "X-RateLimit-Limit";
@@ -150,6 +152,10 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
      * @author fudali [fudali113@gmail.com]
      */
     private boolean isMatch(Map.Entry<Policy.Type, String> entry, Map<Policy.Type, String> requestInfo) {
+        // 支持 must-exist 关键字，表示该参数必须存在切不为null
+        if (MUST_EXIST.equals(entry.getValue())) {
+            return requestInfo.containsKey(entry.getKey()) && requestInfo.get(entry.getKey()) != null;
+        }
         if (entry.getKey() == Policy.Type.URL) {
             return Arrays.stream(entry.getValue().split(","))
                     .filter(url -> antPathMatcher.match(url, requestInfo.get(entry.getKey())))

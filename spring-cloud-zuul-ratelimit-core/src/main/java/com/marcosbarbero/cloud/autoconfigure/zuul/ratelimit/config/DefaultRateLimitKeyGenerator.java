@@ -38,6 +38,8 @@ import java.util.StringJoiner;
 @RequiredArgsConstructor
 public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
 
+    public static final String ANONYMOUS_USER = "anonymous";
+
     private final UserIDGenerator userIDGenerator;
     private final RateLimitProperties properties;
 
@@ -66,7 +68,8 @@ public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
                     joiner.add(RequestUtils.getRealIp(context.getRequest(), properties.isBehindProxy()));
                     break;
                 case USER:
-                    joiner.add(userIDGenerator.getUserId(context));
+                    String userId = userIDGenerator.getUserId(context);
+                    joiner.add(userId == null ? ANONYMOUS_USER : userId);
                     break;
                 case ROUTE:
                     Optional.ofNullable(route).ifPresent(r -> joiner.add(r.getId()));

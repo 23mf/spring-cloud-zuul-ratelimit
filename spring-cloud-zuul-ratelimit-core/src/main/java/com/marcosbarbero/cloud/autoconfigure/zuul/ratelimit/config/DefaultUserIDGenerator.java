@@ -30,6 +30,6 @@ public class DefaultUserIDGenerator implements UserIDGenerator {
     @Override
     public String getUserId(RequestContext context) {
         HttpServletRequest request = context.getRequest();
-        return request.getRemoteUser() != null ? request.getRemoteUser() : ANONYMOUS_USER;
+        return request.getRemoteUser();
     }
 }
