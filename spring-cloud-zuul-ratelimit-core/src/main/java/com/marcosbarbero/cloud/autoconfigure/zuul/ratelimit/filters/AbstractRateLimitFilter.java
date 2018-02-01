@@ -59,7 +59,7 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
     private final RouteLocator routeLocator;
     private final UrlPathHelper urlPathHelper;
     private final UserIDGenerator userIDGenerator;
-    private final AntPathMatcher antPathMatcher = new AntPathMatcher();
+    private static final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     @Override
     public boolean shouldFilter() {
@@ -98,7 +98,7 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
      * @return this request should do policyList {@link List<Policy>}
      * @author fudali [fudali113@gmail.com]
      */
-    protected List<Policy> policy(RequestContext context) {
+    List<Policy> policy(RequestContext context) {
         if (context.containsKey(LIMIT_POLICIES)) {
             return (List<Policy>) context.get(LIMIT_POLICIES);
         }
@@ -135,7 +135,7 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
      * @return is need do this policy
      * @author fudali [fudali113@gmail.com]
      */
-    protected boolean match(Policy policy, Map<Policy.Type, String> requestInfo) {
+    static boolean match(Policy policy, Map<Policy.Type, String> requestInfo) {
         Map<Policy.Type, String> types = policy.getTypes();
         return !types.entrySet().stream()
                 .filter(entry -> StringUtils.isNotEmpty(entry.getValue()) && !isMatch(entry, requestInfo))
@@ -151,10 +151,11 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
      * @return isMatch
      * @author fudali [fudali113@gmail.com]
      */
-    private boolean isMatch(Map.Entry<Policy.Type, String> entry, Map<Policy.Type, String> requestInfo) {
+    static boolean isMatch(Map.Entry<Policy.Type, String> entry, Map<Policy.Type, String> requestInfo) {
         // 支持 must-exist 关键字，表示该参数必须存在切不为null
         if (MUST_EXIST.equals(entry.getValue())) {
-            return requestInfo.containsKey(entry.getKey()) && requestInfo.get(entry.getKey()) != null;
+            return requestInfo.containsKey(entry.getKey()) &&
+                    StringUtils.isNotEmpty(requestInfo.get(entry.getKey()));
         }
         if (entry.getKey() == Policy.Type.URL) {
             return Arrays.stream(entry.getValue().split(","))

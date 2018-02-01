@@ -19,6 +19,7 @@ package com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties.Policy;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties.Policy.Type;
+import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.filters.AbstractRateLimitFilter;
 import com.netflix.zuul.context.RequestContext;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -57,7 +58,7 @@ public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
              * if value is not empty, we have a const value or more const value
              * we want use policy name replace it to mark key
              */
-            if (StringUtils.isNotEmpty(value)) {
+            if (StringUtils.isNotEmpty(value) && !isSpecialValue(value)) {
                 if (!hasPolicyName) {
                     joiner.add(value);
                 }
@@ -80,4 +81,15 @@ public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
         });
         return joiner.toString();
     }
+
+    /**
+     * 判断是不是特殊字符串
+     *
+     * @param value
+     * @return
+     */
+    boolean isSpecialValue(String value) {
+        return AbstractRateLimitFilter.MUST_EXIST.equals(value);
+    }
+
 }
