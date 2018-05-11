@@ -53,9 +53,9 @@ public class RedisRateLimiter implements RateLimiter {
     private void calcRemainingLimit(Long limit, Long refreshInterval,
                                     Long requestTime, String key, Rate rate) {
         if (limit != null) {
-            handleExpiration(key, refreshInterval, rate);
             long usage = requestTime == null ? 1L : 0L;
             Long current = this.redisTemplate.boundValueOps(key).increment(usage);
+            handleExpiration(key, refreshInterval, rate);
             rate.setRemaining(Math.max(-1, limit - current));
         }
     }
@@ -64,9 +64,9 @@ public class RedisRateLimiter implements RateLimiter {
                                     Long requestTime, String key, Rate rate) {
         if (quota != null) {
             String quotaKey = key + QUOTA_SUFFIX;
-            handleExpiration(quotaKey, refreshInterval, rate);
             Long usage = requestTime != null ? requestTime : 0L;
             Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
+            handleExpiration(quotaKey, refreshInterval, rate);
             rate.setRemainingQuota(Math.max(-1, quota - current));
         }
     }
