@@ -77,11 +77,12 @@ public class RateLimitPostFilter extends AbstractRateLimitFilter {
     @Override
     protected void doPolicy(RateLimitProperties.Policy policy) {
         final RequestContext ctx = RequestContext.getCurrentContext();
+        int responseStatusCode = ctx.getResponseStatusCode();
         final Route route = route();
 
         final Long requestTime = System.currentTimeMillis() - getRequestStartTime();
         final String key = rateLimitKeyGenerator.key(ctx, route, policy);
-        rateLimiter.consume(policy, key, requestTime);
+        rateLimiter.consume(policy, key, requestTime, responseStatusCode);
     }
 
 }

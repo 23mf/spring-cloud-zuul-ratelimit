@@ -17,7 +17,7 @@ public abstract class BaseRateLimiterTest {
         policy.setLimit(10L);
         policy.setRefreshInterval(2L);
 
-        Rate rate = target.consume(policy, "key", null);
+        Rate rate = target.consume(policy, "key", null, 0);
         assertThat(rate.getRemaining()).isEqualTo(9L);
         assertThat(rate.getRemainingQuota()).isNull();
     }
@@ -28,7 +28,7 @@ public abstract class BaseRateLimiterTest {
         policy.setQuota(1L);
         policy.setRefreshInterval(2L);
 
-        Rate rate = target.consume(policy, "key", 800L);
+        Rate rate = target.consume(policy, "key", 800L, 0);
         assertThat(rate.getRemainingQuota()).isEqualTo(200L);
         assertThat(rate.getRemaining()).isNull();
     }
@@ -40,11 +40,11 @@ public abstract class BaseRateLimiterTest {
         policy.setQuota(1L);
         policy.setRefreshInterval(2L);
 
-        Rate rate = target.consume(policy, "key", null);
+        Rate rate = target.consume(policy, "key", null, 0);
         assertThat(rate.getRemaining()).isEqualTo(9L);
         assertThat(rate.getRemainingQuota()).isEqualTo(1000L);
 
-        rate = target.consume(policy, "key", 800L);
+        rate = target.consume(policy, "key", 800L, 0);
         assertThat(rate.getRemaining()).isEqualTo(9L);
         assertThat(rate.getRemainingQuota()).isEqualTo(200L);
     }

@@ -16,34 +16,26 @@
 
 package com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.*;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties;
-import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository.ConsulRateLimiter;
-import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository.InMemoryRateLimiter;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository.RedisRateLimiter;
-import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository.springdata.JpaRateLimiter;
-import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository.springdata.RateLimiterRepository;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.filters.RateLimitPostFilter;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.filters.RateLimitPreFilter;
 import com.netflix.zuul.ZuulFilter;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.consul.ConditionalOnConsulEnabled;
 import org.springframework.cloud.netflix.zuul.filters.RouteLocator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.util.UrlPathHelper;
+
+import java.util.List;
 
 import static com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties.PREFIX;
 
@@ -59,21 +51,23 @@ public class RateLimitAutoConfiguration {
 
     @Bean
     public ZuulFilter rateLimiterPreFilter(final RateLimiter rateLimiter,
-                                           final RateLimitProperties rateLimitProperties,
+                                           final RateLimitProperties properties,
                                            final RouteLocator routeLocator,
                                            final RateLimitKeyGenerator rateLimitKeyGenerator,
                                            final UserIDGenerator userIDGenerator) {
-        return new RateLimitPreFilter(rateLimitProperties, routeLocator, urlPathHelper, rateLimiter,
+        valid(properties);
+        return new RateLimitPreFilter(properties, routeLocator, urlPathHelper, rateLimiter,
                 rateLimitKeyGenerator, userIDGenerator);
     }
 
     @Bean
     public ZuulFilter rateLimiterPostFilter(final RateLimiter rateLimiter,
-                                            final RateLimitProperties rateLimitProperties,
+                                            final RateLimitProperties properties,
                                             final RouteLocator routeLocator,
                                             final RateLimitKeyGenerator rateLimitKeyGenerator,
                                             final UserIDGenerator userIDGenerator) {
-        return new RateLimitPostFilter(rateLimitProperties, routeLocator, urlPathHelper, rateLimiter,
+        valid(properties);
+        return new RateLimitPostFilter(properties, routeLocator, urlPathHelper, rateLimiter,
                 rateLimitKeyGenerator, userIDGenerator);
     }
 
@@ -87,6 +81,7 @@ public class RateLimitAutoConfiguration {
     @ConditionalOnMissingBean(RateLimitKeyGenerator.class)
     public RateLimitKeyGenerator ratelimitKeyGenerator(final RateLimitProperties properties,
                                                        final UserIDGenerator userIDGenerator) {
+        valid(properties);
         return new DefaultRateLimitKeyGenerator(userIDGenerator, properties);
     }
 
@@ -106,38 +101,20 @@ public class RateLimitAutoConfiguration {
         }
     }
 
-    @ConditionalOnConsulEnabled
-    @ConditionalOnMissingBean(RateLimiter.class)
-    @ConditionalOnProperty(prefix = PREFIX, name = "repository", havingValue = "CONSUL")
-    public static class ConsulConfiguration {
-
-        @Bean
-        public RateLimiter consultRateLimiter(final ConsulClient consulClient, final ObjectMapper objectMapper) {
-            return new ConsulRateLimiter(consulClient, objectMapper);
-        }
-
+    private void valid(RateLimitProperties properties) {
+        List<RateLimitProperties.Policy> policies = properties.getNewPolicies();
+        policies.forEach(this::valid);
     }
 
-    @EntityScan
-    @EnableJpaRepositories
-    @ConditionalOnMissingBean(RateLimiter.class)
-    @ConditionalOnProperty(prefix = PREFIX, name = "repository", havingValue = "JPA")
-    public static class SpringDataConfiguration {
-
-        @Bean
-        public RateLimiter springDataRateLimiter(final RateLimiterRepository rateLimiterRepository) {
-            return new JpaRateLimiter(rateLimiterRepository);
-        }
-
-    }
-
-    @ConditionalOnMissingBean(RateLimiter.class)
-    @ConditionalOnProperty(prefix = PREFIX, name = "repository", havingValue = "IN_MEMORY", matchIfMissing = true)
-    public static class InMemoryConfiguration {
-
-        @Bean
-        public RateLimiter inMemoryRateLimiter() {
-            return new InMemoryRateLimiter();
+    private void valid(RateLimitProperties.Policy policy) {
+        RateLimitProperties.HttpStatus httpStatus = policy.getHttpStatus();
+        if (httpStatus != null) {
+            if (httpStatus.getLimit() == null
+                    || httpStatus.getStatuses() == null
+                    || "".equals(httpStatus.getStatuses())) {
+                throw new IllegalArgumentException("policy name : " + policy.getName() + " config error, " +
+                        "http status field limit and statuses must not empty!");
+            }
         }
     }
 

@@ -78,7 +78,7 @@ public class RateLimitPreFilter extends AbstractRateLimitFilter {
         final Route route = route();
 
         final String key = rateLimitKeyGenerator.key(ctx, route, policy);
-        final Rate rate = rateLimiter.consume(policy, key, null);
+        final Rate rate = rateLimiter.consume(policy, key, null, 0);
 
         final Long limit = policy.getLimit();
         final Long remaining = rate.getRemaining();
@@ -101,7 +101,16 @@ public class RateLimitPreFilter extends AbstractRateLimitFilter {
                     String.valueOf(MILLISECONDS.toSeconds(Math.max(remainingQuota, 0))));
         }
 
-        if (isLimit(policy, remaining, remainingQuota)) {
+        RateLimitProperties.HttpStatus httpStatus = policy.getHttpStatus();
+        final Long remainingHttpStatuses = rate.getRemainingHttpStatuses();
+
+        if (httpStatus != null) {
+            response.setHeader(HTTP_STATUS_LIMIT_HEADER, String.valueOf(httpStatus.getLimit()));
+            response.setHeader(HTTP_STATUSES_LIMIT_HEADER, httpStatus.getStatuses());
+            response.setHeader(HTTP_STATUS_REMAINING_HEADER, String.valueOf(remainingHttpStatuses));
+        }
+
+        if (isLimit(policy, remaining, remainingQuota, remainingHttpStatuses)) {
             HttpStatus tooManyRequests = HttpStatus.TOO_MANY_REQUESTS;
             ctx.setResponseStatusCode(tooManyRequests.value());
             ctx.put(RATE_LIMIT_EXCEEDED, Boolean.TRUE.toString());
@@ -115,8 +124,13 @@ public class RateLimitPreFilter extends AbstractRateLimitFilter {
         }
     }
 
-    protected static final boolean isLimit(RateLimitProperties.Policy policy, Long remaining, Long remainingQuota) {
-        return (policy.getLimit() != null && remaining < 0) || (policy.getQuota() != null && remainingQuota < 0);
+    protected static final boolean isLimit(RateLimitProperties.Policy policy,
+                                           Long remaining,
+                                           Long remainingQuota,
+                                           Long remainingHttpStatuses) {
+        return (policy.getLimit() != null && remaining < 0)
+                || (policy.getQuota() != null && remainingQuota < 0)
+                || (policy.getHttpStatus() != null && remainingHttpStatuses < 0);
     }
 
 }

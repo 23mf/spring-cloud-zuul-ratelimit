@@ -20,7 +20,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.DefaultRateLimitKeyGenerator;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -135,9 +137,20 @@ public class RateLimitProperties {
         @NotNull
         private Long refreshInterval = MINUTES.toSeconds(1L);
 
+        /**
+         * 限制调用次数
+         */
         private Long limit;
 
+        /**
+         * 限制时间
+         */
         private Long quota;
+
+        /**
+         * 限制某些 http 的返回状态码
+         */
+        private HttpStatus httpStatus;
 
         /**
          * if this request in limited , show this alert message
@@ -151,6 +164,13 @@ public class RateLimitProperties {
         private List<Type> type = Lists.newArrayList();
 
         private Map<Type, String> types = Maps.newLinkedHashMap();
+
+        public Long getHttpStatusLimit() {
+            if (httpStatus == null) {
+                return null;
+            }
+            return httpStatus.getLimit();
+        }
 
         /**
          * compatibility type field in config, merge old type to types
@@ -169,4 +189,21 @@ public class RateLimitProperties {
         }
 
     }
+
+    /**
+     * 限制某些 http 的返回状态码
+     */
+    @Data
+    public static class HttpStatus {
+        /**
+         * 限制某些 http status 返回值的次数
+         */
+        private Long limit;
+        /**
+         * 需要限制的 http status
+         * 多个可以使用 `,` 进行分割； 例如 `403,405,401`
+         */
+        private String statuses;
+    }
+
 }

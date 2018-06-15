@@ -18,11 +18,11 @@ package com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.repository;
 
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.Rate;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.RateLimiter;
+import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties;
 import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.RateLimitProperties.Policy;
-
-import org.springframework.data.redis.core.RedisTemplate;
-
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -39,13 +39,16 @@ public class RedisRateLimiter implements RateLimiter {
     private final RedisTemplate redisTemplate;
 
     @Override
-    public Rate consume(final Policy policy, final String key, final Long requestTime) {
+    public Rate consume(final Policy policy, final String key, final Long requestTime, final int httpResponseStatus) {
         final Long refreshInterval = policy.getRefreshInterval();
         final Long quota = policy.getQuota() != null ? SECONDS.toMillis(policy.getQuota()) : null;
-        final Rate rate = new Rate(key, policy.getLimit(), quota, null, null);
+        final Rate rate =
+                new Rate(key, policy.getLimit(), quota, policy.getHttpStatusLimit(), null, null);
 
         calcRemainingLimit(policy.getLimit(), refreshInterval, requestTime, key, rate);
         calcRemainingQuota(quota, refreshInterval, requestTime, key, rate);
+        calcRemainingHttpStatuses(policy.getHttpStatus(),
+                refreshInterval, requestTime, httpResponseStatus, key, rate);
 
         return rate;
     }
@@ -68,6 +71,17 @@ public class RedisRateLimiter implements RateLimiter {
             Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
             handleExpiration(quotaKey, refreshInterval, rate);
             rate.setRemainingQuota(Math.max(-1, quota - current));
+        }
+    }
+
+    private void calcRemainingHttpStatuses(RateLimitProperties.HttpStatus httpStatus, Long refreshInterval,
+                                           Long requestTime, int httpResponseStatus, String key, Rate rate) {
+        if (httpStatus != null && httpStatus.getStatuses().contains(String.valueOf(httpResponseStatus))) {
+            String quotaKey = key + "-" + httpStatus.getStatuses();
+            long usage = requestTime == null ? 1L : 0L;
+            Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
+            handleExpiration(quotaKey, refreshInterval, rate);
+            rate.setRemainingQuota(Math.max(-1, httpStatus.getLimit() - current));
         }
     }
 

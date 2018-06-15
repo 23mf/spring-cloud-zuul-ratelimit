@@ -50,6 +50,9 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
     public static final String REMAINING_QUOTA_HEADER = "X-RateLimit-Remaining-Quota";
     public static final String LIMIT_HEADER = "X-RateLimit-Limit";
     public static final String REMAINING_HEADER = "X-RateLimit-Remaining";
+    public static final String HTTP_STATUS_LIMIT_HEADER = "X-RateLimit-HttpStatus-Limit";
+    public static final String HTTP_STATUSES_LIMIT_HEADER = "X-RateLimit-HttpStatus-Statuses";
+    public static final String HTTP_STATUS_REMAINING_HEADER = "X-RateLimit-HttpStatus-Remaining";
     public static final String RESET_HEADER = "X-RateLimit-Reset";
     public static final String REQUEST_START_TIME = "rateLimitRequestStartTime";
 
