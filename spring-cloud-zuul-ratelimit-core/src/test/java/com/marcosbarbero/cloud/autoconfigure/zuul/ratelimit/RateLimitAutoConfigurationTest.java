@@ -69,7 +69,7 @@ public class RateLimitAutoConfigurationTest {
     }
 
     @Configuration
-    public static class Conf {
+        public static class Conf {
 
         @Bean
         public RouteLocator routeLocator() {
