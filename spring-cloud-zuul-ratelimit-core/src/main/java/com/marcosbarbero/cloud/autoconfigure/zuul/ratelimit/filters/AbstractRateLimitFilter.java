@@ -23,6 +23,7 @@ import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.Ra
 import com.netflix.zuul.ZuulFilter;
 import com.netflix.zuul.context.RequestContext;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.netflix.zuul.filters.Route;
 import org.springframework.cloud.netflix.zuul.filters.RouteLocator;
@@ -35,6 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.POST_TYPE;
+import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.PRE_TYPE;
 
 /**
  * @author Marcos Barbero
@@ -55,6 +59,7 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
     public static final String HTTP_STATUS_REMAINING_HEADER = "X-RateLimit-HttpStatus-Remaining";
     public static final String RESET_HEADER = "X-RateLimit-Reset";
     public static final String REQUEST_START_TIME = "rateLimitRequestStartTime";
+    public static final String REQUEST_CONSUME_TIME = "rateLimitRequestConsumeTime";
 
     public static final String LIMIT_POLICIES = "limit-policyList";
 
@@ -72,7 +77,17 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
     @Override
     public Object run() {
         try {
-            policy(RequestContext.getCurrentContext()).forEach(this::doPolicy);
+            final RequestContext context = RequestContext.getCurrentContext();
+            if (POST_TYPE.equals(filterType())) {
+                if (context.containsKey(REQUEST_START_TIME)) {
+                    context.set(REQUEST_CONSUME_TIME,
+                            System.currentTimeMillis() - MapUtils.getLong(context, REQUEST_START_TIME));
+                }
+            }
+            policy(context).forEach(this::doPolicy);
+            if (PRE_TYPE.equals(filterType())) {
+                context.set(REQUEST_START_TIME, System.currentTimeMillis());
+            }
         } catch (RuntimeException e) {
             if (e instanceof ZuulRuntimeException
                     || properties.getRepositoryException() == RateLimitProperties.RepositoryException.THROW) {
@@ -111,6 +126,7 @@ public abstract class AbstractRateLimitFilter extends ZuulFilter {
         map.put(Policy.Type.ORIGIN, RequestUtils.getRealIp(context.getRequest(), properties.isBehindProxy()));
         Route route = route();
         map.put(Policy.Type.ROUTE, route == null ? null : route.getId());
+        map.put(Policy.Type.METHOD, context.getRequest().getMethod().toUpperCase());
         List<Policy> policies = properties.getNewPolicies().stream()
                 .map(policy -> {
                     policy.getType().stream()

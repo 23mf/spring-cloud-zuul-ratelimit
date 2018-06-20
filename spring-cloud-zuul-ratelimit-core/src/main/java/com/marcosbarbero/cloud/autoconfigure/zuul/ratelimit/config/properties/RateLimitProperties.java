@@ -183,7 +183,7 @@ public class RateLimitProperties {
         }
 
         public enum Type {
-            ORIGIN, USER, URL, ROUTE
+            ORIGIN, USER, URL, ROUTE, METHOD
         }
 
     }

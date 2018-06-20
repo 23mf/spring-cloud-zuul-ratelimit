@@ -23,13 +23,10 @@ import com.marcosbarbero.cloud.autoconfigure.zuul.ratelimit.config.properties.Ra
 import com.netflix.zuul.context.RequestContext;
 import org.springframework.cloud.netflix.zuul.filters.Route;
 import org.springframework.cloud.netflix.zuul.filters.RouteLocator;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.util.UrlPathHelper;
 
 import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.POST_TYPE;
 import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.SEND_RESPONSE_FILTER_ORDER;
-import static org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST;
 
 /**
  * @author Marcos Barbero
@@ -59,16 +56,6 @@ public class RateLimitPostFilter extends AbstractRateLimitFilter {
         return SEND_RESPONSE_FILTER_ORDER - 10;
     }
 
-    @Override
-    public boolean shouldFilter() {
-        return super.shouldFilter() && getRequestStartTime() != null;
-    }
-
-    private Long getRequestStartTime() {
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        return (Long) requestAttributes.getAttribute(RateLimitPreFilter.REQUEST_START_TIME, SCOPE_REQUEST);
-    }
-
     /**
      * do post policy
      *
@@ -80,7 +67,7 @@ public class RateLimitPostFilter extends AbstractRateLimitFilter {
         int responseStatusCode = ctx.getResponseStatusCode();
         final Route route = route();
 
-        final Long requestTime = System.currentTimeMillis() - getRequestStartTime();
+        final Long requestTime = (Long) ctx.get(REQUEST_CONSUME_TIME);
         final String key = rateLimitKeyGenerator.key(ctx, route, policy);
         rateLimiter.consume(policy, key, requestTime, responseStatusCode);
     }

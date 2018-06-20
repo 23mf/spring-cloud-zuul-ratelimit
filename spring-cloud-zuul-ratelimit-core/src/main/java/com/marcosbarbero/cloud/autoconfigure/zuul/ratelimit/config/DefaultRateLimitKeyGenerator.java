@@ -77,6 +77,8 @@ public class DefaultRateLimitKeyGenerator implements RateLimitKeyGenerator {
                     break;
                 case URL:
                     joiner.add(context.getRequest().getRequestURI());
+                case METHOD:
+                    joiner.add(context.getRequest().getMethod());
             }
         });
         return joiner.toString();

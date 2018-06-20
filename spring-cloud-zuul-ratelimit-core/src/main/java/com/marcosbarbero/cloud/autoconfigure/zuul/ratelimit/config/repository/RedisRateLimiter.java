@@ -75,12 +75,14 @@ public class RedisRateLimiter implements RateLimiter {
 
     private void calcRemainingHttpStatuses(RateLimitProperties.HttpStatus httpStatus, Long refreshInterval,
                                            Long requestTime, int httpResponseStatus, String key, Rate rate) {
-        if (httpStatus != null && httpStatus.getStatuses().contains(String.valueOf(httpResponseStatus))) {
-            String quotaKey = key + "-" + httpStatus.getStatuses();
-            long usage = requestTime == null ? 1L : 0L;
-            Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
-            handleExpiration(quotaKey, refreshInterval, rate);
-            rate.setRemainingQuota(Math.max(-1, httpStatus.getLimit() - current));
+        if (httpStatus != null) {
+            if (httpStatus.getStatuses().contains(String.valueOf(httpResponseStatus)) || requestTime == null) {
+                String quotaKey = key + "-" + httpStatus.getStatuses();
+                long usage = requestTime == null ? 1L : 0L;
+                Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
+                handleExpiration(quotaKey, refreshInterval, rate);
+                rate.setRemainingHttpStatuses(Math.max(-1, httpStatus.getLimit() - current));
+            }
         }
     }
 

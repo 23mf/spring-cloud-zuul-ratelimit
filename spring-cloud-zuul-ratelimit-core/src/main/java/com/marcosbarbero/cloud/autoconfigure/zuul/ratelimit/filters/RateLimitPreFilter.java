@@ -94,8 +94,6 @@ public class RateLimitPreFilter extends AbstractRateLimitFilter {
         final Long remainingQuota = rate.getRemainingQuota();
 
         if (quota != null) {
-            RequestContextHolder.getRequestAttributes()
-                    .setAttribute(REQUEST_START_TIME, System.currentTimeMillis(), SCOPE_REQUEST);
             response.setHeader(QUOTA_HEADER, String.valueOf(quota));
             response.setHeader(REMAINING_QUOTA_HEADER,
                     String.valueOf(MILLISECONDS.toSeconds(Math.max(remainingQuota, 0))));
