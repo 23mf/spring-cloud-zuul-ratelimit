@@ -25,7 +25,6 @@ import org.springframework.cloud.netflix.zuul.filters.Route;
 import org.springframework.cloud.netflix.zuul.filters.RouteLocator;
 import org.springframework.cloud.netflix.zuul.util.ZuulRuntimeException;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.util.UrlPathHelper;
 
 import javax.servlet.http.HttpServletResponse;
@@ -33,7 +32,6 @@ import javax.servlet.http.HttpServletResponse;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.FORM_BODY_WRAPPER_FILTER_ORDER;
 import static org.springframework.cloud.netflix.zuul.filters.support.FilterConstants.PRE_TYPE;
-import static org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST;
 
 /**
  * @author Marcos Barbero

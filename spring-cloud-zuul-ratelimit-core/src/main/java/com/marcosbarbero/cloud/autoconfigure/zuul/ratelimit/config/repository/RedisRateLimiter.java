@@ -46,8 +46,7 @@ public class RedisRateLimiter implements RateLimiter {
 
         calcRemainingLimit(policy.getLimit(), refreshInterval, requestTime, key, rate);
         calcRemainingQuota(quota, refreshInterval, requestTime, key, rate);
-        calcRemainingHttpStatuses(policy.getHttpStatus(),
-                refreshInterval, requestTime, httpResponseStatus, key, rate);
+        calcRemainingHttpStatuses(policy.getHttpStatus(), refreshInterval, requestTime, httpResponseStatus, key, rate);
 
         return rate;
     }
@@ -76,13 +75,14 @@ public class RedisRateLimiter implements RateLimiter {
     private void calcRemainingHttpStatuses(RateLimitProperties.HttpStatus httpStatus, Long refreshInterval,
                                            Long requestTime, int httpResponseStatus, String key, Rate rate) {
         if (httpStatus != null) {
-            if (httpStatus.getStatuses().contains(String.valueOf(httpResponseStatus)) || requestTime == null) {
-                String quotaKey = key + "-" + httpStatus.getStatuses();
-                long usage = requestTime == null ? 1L : 0L;
-                Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
-                handleExpiration(quotaKey, refreshInterval, rate);
-                rate.setRemainingHttpStatuses(Math.max(-1, httpStatus.getLimit() - current));
-            }
+            String quotaKey = key + "-" + httpStatus.getStatuses();
+            // 如果 http 返回值匹配且为 PostFilter 调用则加 1
+            long usage = httpStatus.getStatuses().contains(String.valueOf(httpResponseStatus)) && requestTime != null
+                    ? 1L
+                    : 0L;
+            Long current = this.redisTemplate.boundValueOps(quotaKey).increment(usage);
+            handleExpiration(quotaKey, refreshInterval, rate);
+            rate.setRemainingHttpStatuses(Math.max(-1, httpStatus.getLimit() - current));
         }
     }
 
